@@ -1,0 +1,42 @@
+# Dependencies
+node_modules/
+.pnp/
+.pnp.js
+
+# Build output
+dist/
+build/
+.angular/
+apps/frontend/dist/
+apps/backend/dist/
+
+# Environment variables — never commit real secrets
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# Logs
+*.log
+npm-debug.log*
+logs/
+
+# Editor / OS
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+Thumbs.db
+
+# Testing
+coverage/
+
+# Cursor
+.cursor/
+
+# Docker volumes (local dev data)
+docker-data/
+
+# Uploaded import files (local)
+uploads/
+apps/backend/uploads/

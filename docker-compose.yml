@@ -1,0 +1,62 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: ai-challenge-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_NAME:-ai_challenge}
+      POSTGRES_USER: ${DB_USER:-ai_challenge}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-ai_challenge_local}
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      # Postgres only auto-runs *.sql/*.sh files placed DIRECTLY in this folder
+      # (does not recurse into subfolders), and only on first init of an empty volume.
+      - ./apps/backend/src/db/migrations:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-ai_challenge}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  backend:
+    build:
+      context: .                        # repo root, so the image can COPY shared/ too
+      dockerfile: apps/backend/Dockerfile
+    container_name: ai-challenge-backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      NODE_ENV: development
+      PORT: 3000
+      DATABASE_URL: postgres://${DB_USER:-ai_challenge}:${DB_PASSWORD:-ai_challenge_local}@postgres:5432/${DB_NAME:-ai_challenge}
+      SESSION_TOKEN_SECRET: ${SESSION_TOKEN_SECRET:-change-me-local-dev-secret}
+    ports:
+      - "3000:3000"
+    working_dir: /app/apps/backend
+    volumes:
+      - .:/app
+      - /app/node_modules                                # keep container's hoisted workspace node_modules
+
+  frontend:
+    build:
+      context: .
+      dockerfile: apps/frontend/Dockerfile
+    container_name: ai-challenge-frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    environment:
+      API_BASE_URL: http://localhost:3000
+    ports:
+      - "4200:4200"
+    working_dir: /app/apps/frontend
+    volumes:
+      - .:/app
+      - /app/node_modules
+
+volumes:
+  pgdata:

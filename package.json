@@ -1,0 +1,19 @@
+{
+  "name": "ai-challenge",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "shared"
+  ],
+  "scripts": {
+    "dev:backend": "npm run dev -w ai-challenge-backend",
+    "dev:frontend": "npm start -w ai-challenge-frontend",
+    "build:backend": "npm run build -w ai-challenge-backend",
+    "build:frontend": "npm run build -w ai-challenge-frontend",
+    "build": "npm run build:backend && npm run build:frontend",
+    "docker:up": "docker compose up -d",
+    "docker:down": "docker compose down",
+    "docker:logs": "docker compose logs -f",
+    "db:seed": "npm run db:seed -w ai-challenge-backend"
+  }
+}

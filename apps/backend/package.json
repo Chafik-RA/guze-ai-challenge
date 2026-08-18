@@ -1,0 +1,29 @@
+{
+  "name": "ai-challenge-backend",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/server.ts",
+    "build": "tsc",
+    "start": "node dist/server.js",
+    "db:seed": "tsx src/db/seed/seed.ts"
+  },
+  "dependencies": {
+    "@ai-challenge/shared": "*",
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.6",
+    "dotenv": "^16.6.1",
+    "express": "^4.22.2",
+    "pg": "^8.23.0"
+  },
+  "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
+    "@types/cors": "^2.8.19",
+    "@types/express": "^4.17.25",
+    "@types/node": "^20.19.43",
+    "@types/pg": "^8.11.6",
+    "tsx": "^4.23.12",
+    "typescript": "^5.9.3"
+  }
+}
