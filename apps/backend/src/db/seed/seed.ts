@@ -6,10 +6,10 @@
  * Requires: pg, bcryptjs (add to apps/backend package.json)
  */
 import "../../load-env.js";
-import { Pool } from "pg";
 import bcrypt from "bcryptjs";
+import { pool } from "../db.js";
 
-const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+
 
 async function seed() {
   const client = await pool.connect();
@@ -30,33 +30,33 @@ async function seed() {
 
     // 1. Members
     const members = [
-      { email: "alice@example.test", name: "Alice Demo", kyc: "approved" },
-      { email: "bob@example.test", name: "Bob Demo", kyc: "pending" },
-      { email: "carol@example.test", name: "Carol Demo", kyc: "approved" },
+      { id: 1001, email: "alice@example.test", name: "Alice Demo", kyc: "approved" },
+      { id: 1002, email: "bob@example.test", name: "Bob Demo", kyc: "pending" },
+      { id: 1003, email: "carol@example.test", name: "Carol Demo", kyc: "approved" },
     ];
     for (const m of members) {
       await client.query(
         `INSERT INTO members (member_id, email, password_hash, display_name, kyc_status, two_factor_enabled)
-         VALUES (DEFAULT, $1, $2, $3, $4, true)`,
-        [m.email, passwordHash, m.name, m.kyc]
+         VALUES ($1, $2, $3, $4, $5, true)`,
+        [m.id, m.email, passwordHash, m.name, m.kyc]
       );
     }
-    // member_id will be 1=alice, 2=bob, 3=carol given insert order + RESTART IDENTITY
+    await client.query(`SELECT setval('members_member_id_seq', (SELECT MAX(member_id) FROM members))`);
 
     // 2. Wallets
     await client.query(`
       INSERT INTO wallets (wallet_id, member_id, type, currency, balance, status) VALUES
-      ('MAIN-1001', 1, 'main', 'USD', 5000.00, 'active'),
-      ('MAIN-1002', 2, 'main', 'USD', 2000.00, 'active'),
-      ('MAIN-1003', 3, 'main', 'USD', 8000.00, 'active')
+      ('MAIN-1001', 1001, 'main', 'USD', 5000.00, 'active'),
+      ('MAIN-1002', 1002, 'main', 'USD', 2000.00, 'active'),
+      ('MAIN-1003', 1003, 'main', 'USD', 8000.00, 'active')
     `);
 
     // 3. Withdrawal destinations
     await client.query(`
       INSERT INTO withdrawal_destinations (destination_id, member_id, type, display_masked) VALUES
-      ('BANK-1001-01', 1, 'bank', 'SCB ****5678'),
-      ('BANK-1002-01', 2, 'bank', 'KBANK ****1002'),
-      ('BANK-1003-01', 3, 'bank', 'BBL ****1003')
+      ('BANK-1001-01', 1001, 'bank', 'SCB ****5678'),
+      ('BANK-1002-01', 1002, 'bank', 'KBANK ****1002'),
+      ('BANK-1003-01', 1003, 'bank', 'BBL ****1003')
     `);
 
     // 4. Account types
@@ -72,28 +72,28 @@ async function seed() {
     // 5. Existing MT5 accounts (Carol already at AT-101 limit = 3, for AC-10/PT-12)
     await client.query(`
       INSERT INTO mt5_accounts (account_id, member_id, account_type_id, leverage, status) VALUES
-      ('MT5-70001', 1, 101, 500, 'active'),
-      ('MT5-71001', 3, 101, 200, 'active'),
-      ('MT5-71002', 3, 101, 500, 'active'),
-      ('MT5-71003', 3, 101, 100, 'active')
+      ('MT5-70001', 1001, 101, 500, 'active'),
+      ('MT5-71001', 1003, 101, 200, 'active'),
+      ('MT5-71002', 1003, 101, 500, 'active'),
+      ('MT5-71003', 1003, 101, 100, 'active')
     `);
 
     // 6. Deposits
     await client.query(`
       INSERT INTO deposits (deposit_id, member_id, amount, currency, method, status_code, created_at, approved_at) VALUES
-      ('DEP-0001', 1, 500.00, 'USD', 'payment_gateway', 3, now(), NULL),
-      ('DEP-0002', 1, 1000.00, 'USD', 'payment_gateway', 1, now(), now()),
-      ('DEP-0003', 2, 250.00, 'USD', 'cryptocurrency_manual', 4, now(), NULL),
-      ('DEP-0004', 3, 750.00, 'USD', 'payment_gateway', 0, now(), NULL)
+      ('DEP-0001', 1001, 500.00, 'USD', 'payment_gateway', 3, now(), NULL),
+      ('DEP-0002', 1001, 1000.00, 'USD', 'payment_gateway', 1, now(), now()),
+      ('DEP-0003', 1002, 250.00, 'USD', 'cryptocurrency_manual', 4, now(), NULL),
+      ('DEP-0004', 1003, 750.00, 'USD', 'payment_gateway', 0, now(), NULL)
     `);
 
     // 7. Withdrawals
     await client.query(`
       INSERT INTO withdrawals (withdrawal_id, member_id, wallet_id, destination_id, amount, currency, method, status_code, created_at, approved_at) VALUES
-      ('WD-0001', 1, 'MAIN-1001', 'BANK-1001-01', 250.00, 'USD', 'bank_transfer', 0, now(), NULL),
-      ('WD-0002', 1, 'MAIN-1001', 'BANK-1001-01', 100.00, 'USD', 'payment_gateway', 1, now(), now()),
-      ('WD-0003', 2, 'MAIN-1002', 'BANK-1002-01', 300.00, 'USD', 'bank_transfer', 3, now(), NULL),
-      ('WD-0004', 3, 'MAIN-1003', 'BANK-1003-01', 900.00, 'USD', 'bank_transfer', 2, now(), NULL)
+      ('WD-0001', 1001, 'MAIN-1001', 'BANK-1001-01', 250.00, 'USD', 'bank_transfer', 0, now(), NULL),
+      ('WD-0002', 1001, 'MAIN-1001', 'BANK-1001-01', 100.00, 'USD', 'payment_gateway', 1, now(), now()),
+      ('WD-0003', 1002, 'MAIN-1002', 'BANK-1002-01', 300.00, 'USD', 'bank_transfer', 3, now(), NULL),
+      ('WD-0004', 1003, 'MAIN-1003', 'BANK-1003-01', 900.00, 'USD', 'bank_transfer', 2, now(), NULL)
     `);
 
     await client.query("COMMIT");

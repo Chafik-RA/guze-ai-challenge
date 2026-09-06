@@ -27,6 +27,9 @@ export const ErrorCode = {
   UNKNOWN_RESULT: "UNKNOWN_RESULT",
   KNOWLEDGE_NOT_FOUND: "KNOWLEDGE_NOT_FOUND",
   SUPPORT_HANDOFF_REQUIRED: "SUPPORT_HANDOFF_REQUIRED",
+  VALIDATION_ERROR: "VALIDATION_ERROR",
+  EMAIL_ALREADY_EXISTS: "EMAIL_ALREADY_EXISTS",
+  AUTH_FORBIDDEN: "AUTH_FORBIDDEN",
 } as const;
 
 export type ErrorCode = (typeof ErrorCode)[keyof typeof ErrorCode];
@@ -38,4 +41,9 @@ export interface ApiError {
     message: string;
     request_id?: string;
   };
+}
+
+export interface HttpError extends Error {
+  status?: number;
+  code?: ErrorCode;
 }
