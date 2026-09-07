@@ -1,0 +1,45 @@
+<div
+  class="bg-gradientPrimary flex h-14 items-center justify-center border-b border-[#E5E7EB] px-4 py-2.5"
+>
+  <div
+    class="text-primary-200 flex w-full max-w-7xl flex-1 items-center justify-between text-sm font-medium"
+  >
+    <div class="flex items-center gap-4">
+      <div class="flex items-center gap-1.5">
+        <svg class="h-5 w-5 shrink-0">
+          <use href="/svg-icons/sprite.svg?v=1#icon-phone"></use>
+        </svg>
+        <p>+12 345 67890</p>
+      </div>
+      <div class="flex items-center gap-1.5">
+        <svg class="h-5 w-5 shrink-0">
+          <use href="/svg-icons/sprite.svg?v=1#icon-mail"></use>
+        </svg>
+        <p>name@company.com</p>
+      </div>
+    </div>
+    <div class="flex items-center gap-3">
+      <div class="flex items-center gap-1.5">
+        <img src="/images/flags/us.svg" alt="flags-us" class="h-4 w-4 shrink-0 rounded-full" />
+        <p>English (US)</p>
+      </div>
+      <div class="bg-primary-300 h-5 w-px"></div>
+      <button
+        (click)="logout()"
+        class="text-secondary-500 flex cursor-pointer items-center gap-1.5"
+      >
+        <svg class="h-5 w-5 shrink-0">
+          <use href="/svg-icons/sprite.svg?v=3#icon-logout-02"></use>
+        </svg>
+        <p>Login</p>
+      </button>
+      <div class="bg-primary-300 h-5 w-px"></div>
+      <div class="flex items-center gap-3">
+        <img src="/images/social/facebook.png" alt="facebook" class="h-5 w-5 shrink-0" />
+        <img src="/images/social/X.png" alt="X" class="h-5 w-5 shrink-0" />
+        <img src="/images/social/github.png" alt="github" class="h-5 w-5 shrink-0" />
+        <img src="/images/social/dribbble.png" alt="dribbble" class="h-5 w-5 shrink-0" />
+      </div>
+    </div>
+  </div>
+</div>

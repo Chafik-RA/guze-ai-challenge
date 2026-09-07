@@ -1,0 +1,150 @@
+<aside
+  class="custom-scrollbar flex w-67.25 shrink-0 flex-col overflow-y-auto border-r border-[#E5E7EB] px-2 py-3.5"
+>
+  <!-- Guze Markets Logo -->
+  <div class="flex items-center justify-center">
+    <img
+      src="/images/logo/guze_logo_blue.svg"
+      alt="GUZE MARKETS"
+      class="h-10 w-25.5 shrink-0 object-cover"
+    />
+  </div>
+
+  <!-- User Profile & Balance Block -->
+  <div class="flex flex-col gap-4.5 py-4">
+    <div class="flex items-center gap-3">
+      <img
+        src="/images/user-default.png"
+        alt="user-default"
+        class="h-10 w-10 shrink-0 rounded-full"
+      />
+      <div class="flex flex-col gap-3">
+        <span class="text-primary-600 font-bold">
+          {{ authService.currentUser()?.display_name || 'Jess Lees' }}
+        </span>
+        <div class="text-primary-600 flex items-center gap-2 text-xs font-medium">
+          <div
+            class="flex items-center gap-1 rounded-2xl border border-[#E5E7EB] bg-[#F9FAFB] px-1.5 py-0.5"
+          >
+            <svg class="h-4 w-4 shrink-0">
+              <use href="/svg-icons/sprite.svg?v=1#icon-gift-box"></use>
+            </svg>
+            <p>0 GP</p>
+          </div>
+          <div
+            class="flex items-center gap-1 rounded-2xl border border-[#E5E7EB] bg-[#F9FAFB] px-1.5 py-0.5"
+          >
+            <svg class="h-4 w-4 shrink-0">
+              <use href="/svg-icons/sprite.svg?v=1#icon-graph"></use>
+            </svg>
+            <p>0 lots/Day</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Available Balance Card -->
+    <div class="flex flex-col gap-2">
+      <span class="text-lightGrey text-sm"> Available Balance </span>
+      <span class="text-primary-600 text-2xl font-semibold"> $87,254.34 </span>
+    </div>
+  </div>
+
+  <div class="h-px w-full bg-[#E5E7EB] px-1.5"></div>
+
+  <!-- Navigation Menu -->
+  <nav class="flex flex-col gap-1 p-4 text-sm">
+    @for (category of allMenuItems(); track category.categoryHeader || $index) {
+      <!-- Category Header -->
+      @if (category.categoryHeader) {
+        <div class="text-primary-600 px-2 py-1.5 font-bold capitalize">
+          {{ category.categoryHeader }}
+        </div>
+      }
+
+      <!-- Category Items -->
+      @for (item of category.items; track item.key) {
+        <div class="flex flex-col gap-1">
+          <!-- TYPE 1: LINK (เมนูกดเปลี่ยนหน้า) -->
+          @if (item.type === 'link') {
+            <a
+              [routerLink]="item.link"
+              routerLinkActive="bg-primary-50 font-semibold text-primary-600"
+              class="text-lightGrey flex items-center gap-1.5 rounded-xl px-2 py-1.5 font-medium transition-colors hover:bg-gray-100 hover:text-gray-900"
+            >
+              <svg class="h-5 w-5 shrink-0">
+                <use [attr.href]="'/svg-icons/sprite.svg?v=1#' + item.icon"></use>
+              </svg>
+              <span>{{ item.label }}</span>
+            </a>
+          }
+
+          <!-- TYPE 2: SUBMENU (เมนูกดขยายย่อย) -->
+          @else if (item.type === 'submenu') {
+            <div>
+              <button
+                type="button"
+                (click)="toggleSubmenu(item.key)"
+                class="text-lightGrey flex w-full items-center justify-between rounded-xl px-2 py-1.5 font-medium transition-colors hover:bg-gray-100 hover:text-gray-900"
+              >
+                <div class="text-lightGrey flex items-center gap-1.5">
+                  <svg class="h-5 w-5 shrink-0">
+                    <use [attr.href]="'/svg-icons/sprite.svg?v=1#' + item.icon"></use>
+                  </svg>
+                  <span>{{ item.label }}</span>
+                </div>
+
+                <!-- Chevron Icon -->
+                <svg
+                  class="text-lightGrey h-5 w-5 shrink-0 transition-transform duration-200"
+                  [class.rotate-180]="isSubmenuOpen(item.key)"
+                >
+                  <use href="/svg-icons/sprite.svg?#icon-chevron-down"></use>
+                </svg>
+              </button>
+
+              <!-- Sub Items Dropdown -->
+              @if (isSubmenuOpen(item.key)) {
+                <div class="mt-1 flex flex-col gap-1 pl-6">
+                  @for (subItem of item.subItems; track subItem.link || $index) {
+                    <a
+                      [routerLink]="subItem.link"
+                      routerLinkActive="bg-primary-50 font-semibold text-primary-600"
+                      class="text-lightGrey flex items-center gap-1.5 rounded-xl px-2 py-1.5 font-medium transition-colors hover:bg-gray-100 hover:text-gray-900"
+                    >
+                      @if (subItem.icon) {
+                        <svg class="h-5 w-5 shrink-0">
+                          <use [attr.href]="'/svg-icons/sprite.svg?#' + subItem.icon"></use>
+                        </svg>
+                      }
+                      <span>{{ subItem.label }}</span>
+                    </a>
+                  }
+                </div>
+              }
+            </div>
+          }
+
+          <!-- TYPE 3: BUTTON (เช่น ปุ่ม Logout) -->
+          @else if (item.type === 'button') {
+            <button
+              type="button"
+              (click)="onButtonClick(item.key)"
+              class="text-secondary-600 hover:bg-secondary-50/70 flex w-full cursor-pointer items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium transition-colors"
+            >
+              <svg class="h-5 w-5 shrink-0">
+                <use [attr.href]="'/svg-icons/sprite.svg?v=1#' + item.icon"></use>
+              </svg>
+              <span>{{ item.label }}</span>
+            </button>
+          }
+
+          <!-- Divider Line -->
+          @if (item.showDivider) {
+            <div class="my-2 border-b border-[#F3F4F6]"></div>
+          }
+        </div>
+      }
+    }
+  </nav>
+</aside>

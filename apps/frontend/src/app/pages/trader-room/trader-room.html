@@ -1,0 +1,17 @@
+<div class="flex min-h-screen w-full flex-col bg-white font-sans text-gray-800 antialiased">
+  <app-navbar />
+
+  <div class="flex w-full flex-1 overflow-hidden">
+    <app-sidebar />
+
+    <main class="flex h-full w-full min-w-0 flex-1 px-5">
+      <route-fade-outlet
+        [containerClass]="'flex flex-col flex-1 w-full h-full'"
+        [duration]="'500ms'"
+        [easing]="'ease-out'"
+      ></route-fade-outlet>
+    </main>
+  </div>
+
+  <app-guzebot-chat [initialMode]="'chat-minimized'" [isGuest]="false" />
+</div>

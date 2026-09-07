@@ -1,2 +1,67 @@
 /* You can add global styles to this file, and also import other style files */
 @import 'tailwindcss';
+
+@theme {
+  --font-montserrat: 'Montserrat', ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--font-montserrat);
+
+  --color-lightGrey: #9ea2ae;
+
+  --color-primary: #05028d;
+  --color-primary-800: #030147;
+  --color-primary-700: #04026a;
+  --color-primary-600: #001489;
+  --color-primary-500: #2d37cd;
+  --color-primary-400: #524ef6;
+  --color-primary-300: #7778ff;
+  --color-primary-200: #9091ff;
+  --color-primary-100: #b0b1ff;
+  --color-primary-50: #d2d2ff;
+
+  --color-secondary-800: #556e10;
+  --color-secondary-700: #668313;
+  --color-secondary-600: #88af19;
+  --color-secondary-500: #b2d237;
+  --color-secondary-400: #d0f440;
+  --color-secondary-300: #ddfa67;
+  --color-secondary-200: #e6ff83;
+  --color-secondary-100: #eefead;
+  --color-secondary-50: #f6ffd2;
+
+  --background-image-gradientPrimary: linear-gradient(
+    360deg,
+    #ffffff -240.94%,
+    #6c6abc -73.82%,
+    #05028d 100%
+  );
+}
+
+:root,
+html,
+body {
+  font-family: var(--font-sans) !important;
+}
+
+/* แต่ Scrollbar เมื่อใช้ overflow-auto */
+.custom-scrollbar {
+  &::-webkit-scrollbar {
+    width: 6px; /* ปรับให้แคบลง */
+  }
+
+  &::-webkit-scrollbar-track {
+    background: transparent; /* พื้นหลังโปร่งแสง */
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: rgb(0, 0, 0, 0.3); /* สีทองจางๆ (ตาม Theme) */
+    border-radius: 10px;
+
+    &:hover {
+      background: rgb(0, 0, 0, 0.6); /* ชัดขึ้นเมื่อ hover */
+    }
+  }
+
+  /* สำหรับ Firefox */
+  scrollbar-width: thin;
+  scrollbar-color: rgb(0, 0, 0, 0.3) transparent;
+}
