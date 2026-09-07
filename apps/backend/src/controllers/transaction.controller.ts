@@ -69,8 +69,17 @@ export class TransactionController {
     next: NextFunction,
   ) => {
     try {
-      const { wallet_id, amount, currency, destination_id, action_id, verification_token } = req.body;
+      const {
+        wallet_id,
+        amount,
+        currency,
+        destination_id,
+        action_id,
+        verification_token,
+        simulate_timeout,
+      } = req.body;
       const idempotencyKey = req.headers["idempotency-key"] as string | undefined;
+      const simulateTimeout = req.headers["x-simulate-timeout"] === "true" || simulate_timeout === true;
 
       const result = await transactionService.createWithdrawal({
         memberId: req.member!.memberId,
@@ -81,6 +90,7 @@ export class TransactionController {
         actionId: action_id,
         verificationToken: verification_token,
         idempotencyKey,
+        simulateTimeout,
       });
 
       const statusCode = result.replayed ? 200 : 201;

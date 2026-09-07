@@ -99,6 +99,7 @@ export class TransactionService {
     actionId?: string | undefined;
     verificationToken?: string | undefined;
     idempotencyKey?: string | undefined;
+    simulateTimeout?: boolean | undefined;
   }): Promise<CreateWithdrawalResponse> {
     const {
       memberId,
@@ -109,6 +110,7 @@ export class TransactionService {
       actionId,
       verificationToken,
       idempotencyKey,
+      simulateTimeout,
     } = params;
 
     // 1. Idempotency check (AC-17, PT-17)
@@ -190,6 +192,25 @@ export class TransactionService {
         destination_id: destinationId,
       });
       await otpService.validateStepUpToken(actionId, verificationToken);
+    }
+
+    // Check for simulated timeout (PT-18 / AC-18)
+    if (simulateTimeout) {
+      await auditService.record({
+        memberId,
+        intent: "WITHDRAW_REQUEST",
+        action: "CREATE_WITHDRAWAL",
+        actionId,
+        confirmation: actionId ? "confirmed" : "not_confirmed",
+        stepUp: verificationToken ? "passed" : "not_required",
+        result: "unknown_result",
+        errorCode: ErrorCode.INTEGRATION_TIMEOUT,
+      });
+      throw createHttpError(
+        504,
+        "Integration timeout. Result is unknown.",
+        ErrorCode.INTEGRATION_TIMEOUT,
+      );
     }
 
     // 8. Create withdrawal record (PT-13)

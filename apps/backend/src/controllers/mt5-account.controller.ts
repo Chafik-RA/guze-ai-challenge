@@ -39,8 +39,9 @@ export class Mt5AccountController {
     next: NextFunction,
   ) => {
     try {
-      const { account_type_id, leverage, action_id, verification_token } = req.body;
+      const { account_type_id, leverage, action_id, verification_token, simulate_timeout } = req.body;
       const idempotencyKey = req.headers["idempotency-key"] as string | undefined;
+      const simulateTimeout = req.headers["x-simulate-timeout"] === "true" || simulate_timeout === true;
 
       const result = await mt5AccountService.createMT5Account({
         memberId: req.member!.memberId,
@@ -49,6 +50,7 @@ export class Mt5AccountController {
         actionId: action_id,
         verificationToken: verification_token,
         idempotencyKey,
+        simulateTimeout,
       });
 
       const statusCode = result.replayed ? 200 : 201;

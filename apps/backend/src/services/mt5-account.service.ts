@@ -32,6 +32,7 @@ export class Mt5AccountService {
     actionId?: string | undefined;
     verificationToken?: string | undefined;
     idempotencyKey?: string | undefined;
+    simulateTimeout?: boolean | undefined;
   }): Promise<CreateMT5Response> {
     const {
       memberId,
@@ -40,6 +41,7 @@ export class Mt5AccountService {
       actionId,
       verificationToken,
       idempotencyKey,
+      simulateTimeout,
     } = params;
 
     // 1. Idempotency check (AC-16, PT-17)
@@ -142,6 +144,25 @@ export class Mt5AccountService {
         leverage,
       });
       await otpService.validateStepUpToken(actionId, verificationToken);
+    }
+
+    // Check for simulated timeout (PT-18 / AC-18)
+    if (simulateTimeout) {
+      await auditService.record({
+        memberId,
+        intent: "CREATE_MT5",
+        action: "CREATE_TRADING_ACCOUNT",
+        actionId,
+        confirmation: actionId ? "confirmed" : "not_confirmed",
+        stepUp: verificationToken ? "passed" : "not_required",
+        result: "unknown_result",
+        errorCode: ErrorCode.INTEGRATION_TIMEOUT,
+      });
+      throw createHttpError(
+        504,
+        "Integration timeout. Result is unknown.",
+        ErrorCode.INTEGRATION_TIMEOUT,
+      );
     }
 
     // 7. Generate account_id and create account (AC-07, PT-08)

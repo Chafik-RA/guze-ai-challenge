@@ -5,6 +5,8 @@ import TradingRouter from "./trading.route.js";
 import SecurityRouter from "./security.route.js";
 import ActionRouter from "./action.route.js";
 import AuditRouter from "./audit.route.js";
+import SupportRouter from "./support.route.js";
+import AgentRouter from "./agent.route.js";
 
 const router = express.Router();
 
@@ -14,5 +16,7 @@ router.use("/transactions", TransactionsRouter);
 router.use("/security", SecurityRouter);
 router.use("/actions", ActionRouter);
 router.use("/audit", AuditRouter);
+router.use("/support", SupportRouter);
+router.use("/agent", AgentRouter);
 
 export default router;

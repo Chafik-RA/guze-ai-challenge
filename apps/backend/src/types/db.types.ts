@@ -124,3 +124,24 @@ export interface AuditEventRow {
   created_at: Date;
 }
 
+export interface SupportTicketRow {
+  ticket_id: string;
+  member_id: number | null;
+  intent: string | null;
+  conversation_summary: string | null;
+  related_reference: string | null;
+  error_code: string | null;
+  reason: string | null;
+  status: string;
+  created_at: Date;
+}
+
+export interface ConversationStateRow {
+  session_id: string;
+  member_id: number | null;
+  current_state: string;
+  current_intent: string | null;
+  current_action_id: string | null;
+  updated_at: Date;
+}
+

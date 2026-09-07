@@ -47,3 +47,28 @@ export async function authenticate(
   req.member = { memberId: member.member_id, email: member.email };
   next();
 }
+
+export async function optionalAuthMiddleware(
+  req: AuthenticatedRequest,
+  _res: Response,
+  next: NextFunction,
+): Promise<void> {
+  const token = extractBearerToken(req);
+  if (!token) {
+    return next();
+  }
+
+  try {
+    const session = await authRepository.findValidSession(token);
+    if (session) {
+      const member = await authRepository.findById(session.member_id);
+      if (member) {
+        req.member = { memberId: member.member_id, email: member.email };
+      }
+    }
+  } catch {
+    // ignore errors in optional auth
+  }
+
+  next();
+}
