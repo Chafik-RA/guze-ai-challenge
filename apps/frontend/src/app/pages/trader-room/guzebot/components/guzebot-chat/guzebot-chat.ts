@@ -13,7 +13,12 @@ import { FormsModule } from '@angular/forms';
 import { AuthService } from '../../../../../core/services/auth.service';
 import { TradingService } from '../../../../../core/services/trading.service';
 import { TransactionService } from '../../../../../core/services/transaction.service';
+import { ActionDraftService } from '../../../../../core/services/action-draft.service';
+import { SecurityService } from '../../../../../core/services/security.service';
+import { SupportService } from '../../../../../core/services/support.service';
+import { AgentService } from '../../../../../core/services/agent.service';
 import { GuzebotService, GuzebotViewMode } from '../../../../../core/services/guzebot.service';
+import type { AccountType } from '@ai-challenge/shared/account-type.types';
 
 export interface ChatMessage {
   id: string;
@@ -23,6 +28,21 @@ export interface ChatMessage {
   text: string;
   time: string;
   chips?: string[];
+  suggestHandoff?: boolean;
+  interactiveCard?:
+    | 'create-mt5'
+    | 'deposit'
+    | 'withdrawal'
+    | 'confirmation'
+    | 'otp-stepup'
+    | 'support-form'
+    | 'receipt';
+  receiptData?: {
+    title: string;
+    reference: string;
+    details: string;
+    status: string;
+  };
 }
 
 export type { GuzebotViewMode };
@@ -38,8 +58,12 @@ export class GuzebotChat implements OnInit {
   protected readonly guzebotService = inject(GuzebotService);
   protected readonly tradingService = inject(TradingService);
   protected readonly transactionService = inject(TransactionService);
+  protected readonly actionDraftService = inject(ActionDraftService);
+  protected readonly securityService = inject(SecurityService);
+  protected readonly supportService = inject(SupportService);
+  protected readonly agentService = inject(AgentService);
 
-  // Allow parent to set default start mode (e.g. 'modal-welcome' on trader-room, 'chat-minimized' on sign-in)
+  // Allow parent to set default start mode
   readonly initialMode = input<GuzebotViewMode>('modal-welcome');
   readonly isGuest = input<boolean>(false);
 
@@ -47,16 +71,43 @@ export class GuzebotChat implements OnInit {
   readonly userInput = signal<string>('');
   readonly isTyping = signal<boolean>(false);
 
+  // Interactive Flow States (Level 3 Protected Workflows)
+  readonly activeFlow = signal<'none' | 'create-mt5' | 'deposit' | 'withdrawal' | 'confirmation' | 'otp' | 'support'>('none');
+  readonly currentActionId = signal<string | null>(null);
+  readonly currentActionIntent = signal<string | null>(null);
+  readonly currentDraftSummary = signal<{ title: string; details: { label: string; value: string }[] } | null>(null);
+  readonly isSubmitting = signal<boolean>(false);
+  readonly flowErrorMessage = signal<string | null>(null);
+
+  // Form Fields: Create MT5
+  readonly accountTypes = signal<AccountType[]>([]);
+  readonly selectedAccountTypeId = signal<number>(101);
+  readonly selectedLeverage = signal<number>(500);
+
+  // Form Fields: Deposit
+  readonly depositWalletId = signal<string>('MAIN-1001');
+  readonly depositAmount = signal<number>(500);
+  readonly depositMethod = signal<string>('payment_gateway');
+
+  // Form Fields: Withdrawal
+  readonly withdrawWalletId = signal<string>('MAIN-1001');
+  readonly withdrawAmount = signal<number>(250);
+  readonly withdrawDestinationId = signal<string>('BANK-1001-01');
+
+  // Form Fields: Step-Up OTP
+  readonly otpValue = signal<string>('123456');
+
+  // Form Fields: Support Ticket
+  readonly supportSummary = signal<string>('Need assistance with transaction inquiry');
+  readonly supportReason = signal<string>('User requested human support specialist');
+
   private readonly messagesContainer = viewChild<ElementRef<HTMLDivElement>>('messagesContainer');
 
   readonly quickFaqs = [
-    { label: 'What is MT5?', query: 'What is MT5?' },
-    { label: 'What is Spread?', query: 'What is Spread?' },
-    {
-      label: 'What are the Forex market trading hours?',
-      query: 'What are the Forex market trading hours?',
-    },
-    { label: 'How do I start trading?', query: 'How do I start trading?' },
+    { label: 'Create MT5 Account', query: 'Create MT5 Account' },
+    { label: 'Deposit Funds', query: 'Deposit Funds' },
+    { label: 'Withdraw Funds', query: 'Withdraw Funds' },
+    { label: 'Check Deposit Status', query: 'Check deposit status' },
   ];
 
   readonly messages = signal<ChatMessage[]>([
@@ -65,13 +116,13 @@ export class GuzebotChat implements OnInit {
       sender: 'assistant',
       senderName: 'Guzebot',
       avatar: 'images/guzebot_avatar.svg',
-      text: 'That’s awesome, I think our users will really appreciate the improvements.',
+      text: "Hello! I'm Guzebot, your 24/7 smart brokerage AI assistant. I can help answer trading questions, track your deposits & withdrawals, or safely guide you through creating MT5 accounts, deposits, and withdrawals with multi-tier verification.",
       time: '11:41',
       chips: [
-        'What is MT5?',
-        'What is Spread?',
-        'What are the Forex market trading hours?',
-        'How do I start trading?',
+        'Deposit Funds',
+        'Create MT5 Account',
+        'Withdraw Funds',
+        'Check Deposit Status',
       ],
     },
   ]);
@@ -93,6 +144,13 @@ export class GuzebotChat implements OnInit {
     if (this.initialMode()) {
       this.guzebotService.setMode(this.initialMode());
     }
+    // Pre-load account types for forms
+    this.tradingService.getAccountTypes().subscribe({
+      next: (res) => {
+        this.accountTypes.set(res.items.filter((at) => at.status === 'active'));
+      },
+      error: () => {},
+    });
   }
 
   setMode(mode: GuzebotViewMode) {
@@ -150,180 +208,457 @@ export class GuzebotChat implements OnInit {
   private fetchBotResponse(query: string) {
     const q = query.toLowerCase();
 
-    // 1. Check MT5 accounts (Live API)
-    if (q.includes('my mt5') || q.includes('my accounts') || q.includes('trading accounts') || q.includes('บัญชีของฉัน')) {
+    // 1. Explicit Quick Actions from Action Chips
+    if (query === 'Create MT5 Account' || query === 'เปิดบัญชี MT5' || query === 'สร้างบัญชี MT5') {
       if (!this.authService.isAuthenticated()) {
         this.addBotMessage({
-          text: 'Checking your MT5 accounts requires authentication. Please Sign In first.',
-          chips: ['What is MT5?', 'What is Spread?'],
+          text: 'การเปิดบัญชี MT5 จำเป็นต้องเข้าสู่ระบบก่อนครับ กรุณา Sign In เข้าสู่ระบบ',
+          chips: ['ประเภทบัญชีมีอะไรบ้าง?', 'MT5 คืออะไร?'],
         });
         return;
       }
 
-      this.tradingService.getTradingAccounts().subscribe({
-        next: (res) => {
-          if (res.items && res.items.length > 0) {
-            const list = res.items
-              .map((acc) => `• **Account ${acc.account_id}**: ${acc.account_name} (${acc.currency}, Leverage 1:${acc.leverage}) — *${acc.status}*`)
-              .join('\n');
-            this.addBotMessage({
-              text: `Here are your connected MT5 trading accounts:\n\n${list}`,
-              chips: ['Check deposit status', 'Check withdrawal status'],
-            });
-          } else {
-            this.addBotMessage({
-              text: 'You do not have any MT5 accounts created yet. You can create a new Core USD or Core Cent account anytime!',
-              chips: ['How do I create MT5 account?', 'What account types are available?'],
-            });
-          }
-        },
-        error: () => {
-          this.addBotMessage({
-            text: 'Unable to retrieve MT5 accounts right now. Please try again later.',
-          });
-        },
-      });
-      return;
-    }
-
-    // 2. Check Deposit Status (Live API)
-    if (q.includes('deposit') || q.includes('ฝากเงิน')) {
-      if (!this.authService.isAuthenticated()) {
-        this.addBotMessage({
-          text: 'Checking personalized deposit records requires authentication. Please Sign In to view your wallet transactions.',
-          chips: ['What is MT5?'],
-        });
-        return;
-      }
-
-      this.transactionService.getDeposits().subscribe({
-        next: (res) => {
-          if (res.items && res.items.length > 0) {
-            const list = res.items
-              .slice(0, 3)
-              .map((d) => `• **${d.deposit_id}**: ${d.amount.toLocaleString()} ${d.currency} — Status: \`${d.status}\` (${d.payment_method})`)
-              .join('\n');
-            this.addBotMessage({
-              text: `Here are your latest deposit transactions:\n\n${list}`,
-              chips: ['Check withdrawal status', 'Check my MT5 accounts'],
-            });
-          } else {
-            this.addBotMessage({
-              text: 'No deposit transactions found in your account history.',
-              chips: ['How do I start trading?'],
-            });
-          }
-        },
-        error: () => {
-          this.addBotMessage({
-            text: 'Unable to load deposit records at this time.',
-          });
-        },
-      });
-      return;
-    }
-
-    // 3. Check Withdrawal Status (Live API)
-    if (q.includes('withdraw') || q.includes('ถอนเงิน')) {
-      if (!this.authService.isAuthenticated()) {
-        this.addBotMessage({
-          text: 'Checking withdrawal transactions requires authentication. Please Sign In first.',
-        });
-        return;
-      }
-
-      this.transactionService.getWithdrawals().subscribe({
-        next: (res) => {
-          if (res.items && res.items.length > 0) {
-            const list = res.items
-              .slice(0, 3)
-              .map((w) => `• **${w.withdrawal_id}**: ${w.amount.toLocaleString()} ${w.currency} — Status: \`${w.status}\` (To: ${w.destination_masked || 'Bank'})`)
-              .join('\n');
-            this.addBotMessage({
-              text: `Here are your recent withdrawal records:\n\n${list}`,
-              chips: ['Check deposit status', 'Check my MT5 accounts'],
-            });
-          } else {
-            this.addBotMessage({
-              text: 'No withdrawal transactions found in your history.',
-            });
-          }
-        },
-        error: () => {
-          this.addBotMessage({
-            text: 'Unable to fetch withdrawal records at this time.',
-          });
-        },
-      });
-      return;
-    }
-
-    // 4. Account Types (Live API)
-    if (q.includes('account type') || q.includes('ประเภทบัญชี') || q.includes('core usd') || q.includes('core cent')) {
-      this.tradingService.getAccountTypes().subscribe({
-        next: (res) => {
-          const list = res.items
-            .filter((at) => at.status === 'active')
-            .map((at) => `• **${at.account_name}** (${at.currency}) — Leverage up to 1:${Math.max(...at.leverages)}, Limit: ${at.account_limit} accounts`)
-            .join('\n');
-          this.addBotMessage({
-            text: `Guze Markets offers the following active account types:\n\n${list}\n\nAll live accounts are protected by multi-tier risk management.`,
-            chips: ['Check my MT5 accounts', 'What is Spread?'],
-          });
-        },
-        error: () => {
-          this.addBotMessage({
-            text: 'MetaTrader 5 (MT5) is available with Core USD (max 1:500 leverage) and Core Cent (max 1:2000 leverage).',
-            chips: ['What is MT5?', 'What is Spread?'],
-          });
-        },
-      });
-      return;
-    }
-
-    // 5. General FAQs (Simulated KB)
-    setTimeout(() => {
-      if (q.includes('mt5')) {
-        this.addBotMessage({
-          text: 'MetaTrader 5 (MT5) is our next-generation trading platform with advanced charting, automated trading, and ultra-low latency execution.',
-          chips: ['What account types are available?', 'What is Spread?'],
-        });
-        return;
-      }
-
-      if (q.includes('spread')) {
-        this.addBotMessage({
-          text: 'Spread is the difference between the Bid (sell) and Ask (buy) price. Guze Markets offers competitive tight spreads across major currency pairs and crypto assets.',
-          chips: ['What is MT5?', 'What are the Forex market trading hours?'],
-        });
-        return;
-      }
-
-      if (q.includes('trading hours') || q.includes('hours') || q.includes('forex market')) {
-        this.addBotMessage({
-          text: 'Forex markets operate 24/5 from Sydney opening Monday morning to New York closing Friday evening. Crypto trading is available 24/7!',
-          chips: ['How do I start trading?', 'What is MT5?'],
-        });
-        return;
-      }
-
-      if (q.includes('start trading') || q.includes('how do i start')) {
-        this.addBotMessage({
-          text: 'To begin trading: 1) Verify your identity, 2) Create an MT5 live account, 3) Deposit funds to your wallet, and 4) Connect MT5 to start executing trades!',
-          chips: ['What account types are available?', 'Check deposit status'],
-        });
-        return;
-      }
-
-      // Default Fallback
+      this.activeFlow.set('create-mt5');
+      this.flowErrorMessage.set(null);
       this.addBotMessage({
-        text: "I'm Guzebot, your 24/7 smart AI brokerage assistant! I can help you with trading conditions, deposit/withdrawal tracking, MT5 account management, and market FAQs.",
-        chips: ['What is MT5?', 'What is Spread?', 'Check deposit status'],
+        text: 'กรุณาเลือกประเภทบัญชีเทรดและเลเวอเรจที่ต้องการด้านล่างได้เลยครับ:',
+        interactiveCard: 'create-mt5',
       });
-    }, 500);
+      return;
+    }
+
+    if (query === 'Deposit Funds' || query === 'ทำรายการฝากเงิน' || query === 'ฝากเงินเข้ากระเป๋า') {
+      if (!this.authService.isAuthenticated()) {
+        this.addBotMessage({
+          text: 'การฝากเงินเข้าวอลเล็ตจำเป็นต้องเข้าสู่ระบบก่อนครับ กรุณา Sign In',
+          chips: ['ประเภทบัญชีมีอะไรบ้าง?', 'MT5 คืออะไร?'],
+        });
+        return;
+      }
+
+      this.activeFlow.set('deposit');
+      this.flowErrorMessage.set(null);
+      this.addBotMessage({
+        text: 'กรุณาเลือกช่องทางการชำระเงินและระบุจำนวนเงินที่ต้องการฝากด้านล่างครับ:',
+        interactiveCard: 'deposit',
+      });
+      return;
+    }
+
+    if (query === 'Withdraw Funds' || query === 'ทำรายการถอนเงิน' || query === 'ถอนเงินออกจากกระเป๋า') {
+      if (!this.authService.isAuthenticated()) {
+        this.addBotMessage({
+          text: 'การถอนเงินจำเป็นต้องเข้าสู่ระบบก่อนครับ กรุณา Sign In',
+          chips: ['ประเภทบัญชีมีอะไรบ้าง?'],
+        });
+        return;
+      }
+
+      this.activeFlow.set('withdrawal');
+      this.flowErrorMessage.set(null);
+      this.addBotMessage({
+        text: 'กรุณาระบุจำนวนเงินที่ต้องการถอนจากกระเป๋าของคุณด้านล่างครับ:',
+        interactiveCard: 'withdrawal',
+      });
+      return;
+    }
+
+    if (query === 'Contact Human Support' || query === 'ติดต่อเจ้าหน้าที่') {
+      this.activeFlow.set('support');
+      this.flowErrorMessage.set(null);
+      this.addBotMessage({
+        text: 'คุณสามารถกรอกหัวข้อและรายละเอียดเพื่อส่งเรื่องไปยังเจ้าหน้าที่ผู้เชี่ยวชาญได้ด้านล่างครับ:',
+        interactiveCard: 'support-form',
+      });
+      return;
+    }
+
+    // 2. Query Backend AI Intelligence & GPT Engine (Sends original case and unicode message)
+    this.agentService.chat(query).subscribe({
+      next: (res) => {
+        let cardToDisplay: ChatMessage['interactiveCard'];
+
+        if (res.intent === 'CREATE_MT5' && this.authService.isAuthenticated()) {
+          this.activeFlow.set('create-mt5');
+          cardToDisplay = 'create-mt5';
+        } else if (res.intent === 'DEPOSIT_REQUEST' && this.authService.isAuthenticated()) {
+          this.activeFlow.set('deposit');
+          cardToDisplay = 'deposit';
+        } else if (res.intent === 'WITHDRAW_REQUEST' && this.authService.isAuthenticated()) {
+          this.activeFlow.set('withdrawal');
+          cardToDisplay = 'withdrawal';
+        }
+
+        this.addBotMessage({
+          text: res.response,
+          chips: res.chips || ['ประเภทบัญชีมีอะไรบ้าง?', 'เปิดบัญชี MT5', 'ทำรายการฝากเงิน'],
+          suggestHandoff: res.suggest_handoff,
+          interactiveCard: cardToDisplay,
+        });
+      },
+      error: () => {
+        const isThai = /[\u0E00-\u0E7F]/.test(query);
+        this.addBotMessage({
+          text: isThai
+            ? "สวัสดีครับ! ผม Guzebot ผู้ช่วย AI ประจำ Guze Markets ยินดีช่วยเหลือและตอบคำถามเกี่ยวกับการเทรดครับ"
+            : "I'm Guzebot, your 24/7 AI brokerage assistant! How may I assist your trading today?",
+          chips: isThai
+            ? ['ประเภทบัญชีมีอะไรบ้าง?', 'MT5 คืออะไร?', 'ติดต่อเจ้าหน้าที่']
+            : ['What account types are available?', 'Create MT5 Account', 'What is MT5?'],
+        });
+      },
+    });
   }
 
-  private addBotMessage(response: { text: string; chips?: string[] }) {
+  // ==========================================
+  // Level 3 Protected Actions Handling
+  // ==========================================
+
+  // Step 1: Submit MT5 Draft
+  submitCreateMT5Draft() {
+    this.isSubmitting.set(true);
+    this.flowErrorMessage.set(null);
+
+    const payload = {
+      account_type_id: this.selectedAccountTypeId(),
+      leverage: this.selectedLeverage(),
+    };
+
+    this.actionDraftService.createDraft({ intent: 'CREATE_MT5', payload }).subscribe({
+      next: (res) => {
+        this.isSubmitting.set(false);
+        this.currentActionId.set(res.action_id);
+        this.currentActionIntent.set('CREATE_MT5');
+        const accTypeName = this.selectedAccountTypeId() === 101 ? 'Core USD' : 'Core Cent';
+        this.currentDraftSummary.set({
+          title: 'Confirm MT5 Account Creation',
+          details: [
+            { label: 'Account Type', value: `${accTypeName} (ID: ${this.selectedAccountTypeId()})` },
+            { label: 'Leverage', value: `1:${this.selectedLeverage()}` },
+            { label: 'Currency', value: this.selectedAccountTypeId() === 101 ? 'USD' : 'USC' },
+          ],
+        });
+        this.activeFlow.set('confirmation');
+      },
+      error: (err) => {
+        this.isSubmitting.set(false);
+        this.flowErrorMessage.set(err.error?.error?.message || 'Failed to create action draft.');
+      },
+    });
+  }
+
+  // Step 1: Submit Deposit Draft
+  submitDepositDraft() {
+    const amount = Number(this.depositAmount());
+    if (!amount || amount <= 0) {
+      this.flowErrorMessage.set('Please enter a valid amount greater than 0.');
+      return;
+    }
+
+    this.isSubmitting.set(true);
+    this.flowErrorMessage.set(null);
+
+    const payload = {
+      wallet_id: this.depositWalletId(),
+      amount: amount,
+      currency: 'USD',
+      payment_method: this.depositMethod(),
+    };
+
+    this.actionDraftService.createDraft({ intent: 'DEPOSIT_REQUEST', payload }).subscribe({
+      next: (res) => {
+        this.isSubmitting.set(false);
+        this.currentActionId.set(res.action_id);
+        this.currentActionIntent.set('DEPOSIT_REQUEST');
+        const methodLabel =
+          this.depositMethod() === 'payment_gateway'
+            ? 'QR Payment Gateway (PromptPay)'
+            : 'USDT Crypto Transfer';
+        this.currentDraftSummary.set({
+          title: 'Confirm Deposit Request',
+          details: [
+            { label: 'Destination Wallet', value: this.depositWalletId() },
+            { label: 'Deposit Amount', value: `$${amount.toLocaleString()} USD` },
+            { label: 'Payment Method', value: methodLabel },
+          ],
+        });
+        this.activeFlow.set('confirmation');
+      },
+      error: (err) => {
+        this.isSubmitting.set(false);
+        this.flowErrorMessage.set(err.error?.error?.message || 'Failed to create deposit draft.');
+      },
+    });
+  }
+
+  // Step 1: Submit Withdrawal Draft
+  submitWithdrawalDraft() {
+    const amount = Number(this.withdrawAmount());
+    if (!amount || amount <= 0) {
+      this.flowErrorMessage.set('Please enter a valid amount greater than 0.');
+      return;
+    }
+
+    this.isSubmitting.set(true);
+    this.flowErrorMessage.set(null);
+
+    const payload = {
+      wallet_id: this.withdrawWalletId(),
+      amount: amount,
+      currency: 'USD',
+      destination_id: this.withdrawDestinationId(),
+    };
+
+    this.actionDraftService.createDraft({ intent: 'WITHDRAW_REQUEST', payload }).subscribe({
+      next: (res) => {
+        this.isSubmitting.set(false);
+        this.currentActionId.set(res.action_id);
+        this.currentActionIntent.set('WITHDRAW_REQUEST');
+        this.currentDraftSummary.set({
+          title: 'Confirm Withdrawal Request',
+          details: [
+            { label: 'Wallet', value: this.withdrawWalletId() },
+            { label: 'Withdraw Amount', value: `$${amount.toLocaleString()} USD` },
+            { label: 'Destination', value: 'SCB ****5678' },
+          ],
+        });
+        this.activeFlow.set('confirmation');
+      },
+      error: (err) => {
+        this.isSubmitting.set(false);
+        this.flowErrorMessage.set(err.error?.error?.message || 'Failed to create withdrawal draft.');
+      },
+    });
+  }
+
+  // Step 2: Explicit Confirmation (AC-12)
+  confirmAction() {
+    const actionId = this.currentActionId();
+    if (!actionId) return;
+
+    this.isSubmitting.set(true);
+    this.flowErrorMessage.set(null);
+
+    this.actionDraftService.confirmDraft(actionId).subscribe({
+      next: () => {
+        this.isSubmitting.set(false);
+        // Transition to Step-Up OTP Verification
+        this.otpValue.set('123456');
+        this.activeFlow.set('otp');
+      },
+      error: (err) => {
+        this.isSubmitting.set(false);
+        this.flowErrorMessage.set(err.error?.error?.message || 'Confirmation failed.');
+      },
+    });
+  }
+
+  // Step 3: Step-Up OTP Verification & Protected Execution (AC-14, AC-15, AC-07, AC-16, AC-17)
+  submitOtpAndExecute() {
+    const actionId = this.currentActionId();
+    const otp = this.otpValue().trim();
+    if (!actionId || !otp) {
+      this.flowErrorMessage.set('Please enter the 6-digit OTP code.');
+      return;
+    }
+
+    this.isSubmitting.set(true);
+    this.flowErrorMessage.set(null);
+
+    // 1. Verify Step-Up OTP
+    this.securityService.verifyOtp({ action_id: actionId, otp }).subscribe({
+      next: (otpRes) => {
+        if (!otpRes.verified || !otpRes.verification_token) {
+          this.isSubmitting.set(false);
+          this.flowErrorMessage.set('Invalid OTP code. For this challenge, please enter 123456.');
+          return;
+        }
+
+        const verificationToken = otpRes.verification_token;
+        const intent = this.currentActionIntent();
+
+        // 2. Execute Action
+        if (intent === 'CREATE_MT5') {
+          this.tradingService
+            .createTradingAccount(
+              {
+                account_type_id: this.selectedAccountTypeId(),
+                leverage: this.selectedLeverage(),
+              },
+              { actionId, stepUpToken: verificationToken },
+            )
+            .subscribe({
+              next: (createRes) => {
+                this.isSubmitting.set(false);
+                this.activeFlow.set('none');
+                this.addBotMessage({
+                  text: `🎉 **Success!** Your new MT5 live account **${createRes.account.account_id}** (${createRes.account.account_name}, Leverage 1:${createRes.account.leverage}) is now active!`,
+                  chips: ['Check my MT5 accounts', 'Deposit Funds', 'Withdraw Funds'],
+                  interactiveCard: 'receipt',
+                  receiptData: {
+                    title: 'MT5 Trading Account Created',
+                    reference: createRes.account.account_id,
+                    details: `${createRes.account.account_name} • 1:${createRes.account.leverage} • ${createRes.account.currency}`,
+                    status: 'Active',
+                  },
+                });
+              },
+              error: (err) => {
+                this.isSubmitting.set(false);
+                this.flowErrorMessage.set(
+                  err.error?.error?.message || 'Failed to create MT5 account. Please try again.',
+                );
+              },
+            });
+        } else if (intent === 'DEPOSIT_REQUEST') {
+          this.transactionService
+            .createDeposit(
+              {
+                wallet_id: this.depositWalletId(),
+                amount: Number(this.depositAmount()),
+                currency: 'USD',
+                payment_method: this.depositMethod(),
+              },
+              { actionId, stepUpToken: verificationToken },
+            )
+            .subscribe({
+              next: (depRes) => {
+                this.isSubmitting.set(false);
+                this.activeFlow.set('none');
+                this.addBotMessage({
+                  text: `🎉 **Success!** Deposit **${depRes.deposit.deposit_id}** for $${depRes.deposit.amount.toLocaleString()} ${depRes.deposit.currency} has been processed and credited to your wallet!`,
+                  chips: ['Create MT5 Account', 'Withdraw Funds', 'Check my MT5 accounts'],
+                  interactiveCard: 'receipt',
+                  receiptData: {
+                    title: 'Deposit Completed',
+                    reference: depRes.deposit.deposit_id,
+                    details: `$${depRes.deposit.amount.toLocaleString()} ${depRes.deposit.currency} • ${depRes.deposit.payment_method}`,
+                    status: 'Approved / Credited',
+                  },
+                });
+              },
+              error: (err) => {
+                this.isSubmitting.set(false);
+                this.flowErrorMessage.set(
+                  err.error?.error?.message || 'Failed to process deposit. Please try again.',
+                );
+              },
+            });
+        } else if (intent === 'WITHDRAW_REQUEST') {
+          this.transactionService
+            .createWithdrawal(
+              {
+                wallet_id: this.withdrawWalletId(),
+                amount: Number(this.withdrawAmount()),
+                currency: 'USD',
+                destination_id: this.withdrawDestinationId(),
+              },
+              { actionId, stepUpToken: verificationToken },
+            )
+            .subscribe({
+              next: (wdRes) => {
+                this.isSubmitting.set(false);
+                this.activeFlow.set('none');
+                this.addBotMessage({
+                  text: `🎉 **Success!** Withdrawal request **${wdRes.withdrawal.withdrawal_id}** for $${wdRes.withdrawal.amount.toLocaleString()} USD has been submitted.`,
+                  chips: ['Check withdrawal status', 'Deposit Funds', 'Check deposit status'],
+                  interactiveCard: 'receipt',
+                  receiptData: {
+                    title: 'Withdrawal Request Submitted',
+                    reference: wdRes.withdrawal.withdrawal_id,
+                    details: `$${wdRes.withdrawal.amount.toLocaleString()} ${wdRes.withdrawal.currency} • SCB ****5678`,
+                    status: 'Pending Review',
+                  },
+                });
+              },
+              error: (err) => {
+                this.isSubmitting.set(false);
+                this.flowErrorMessage.set(
+                  err.error?.error?.message || 'Failed to process withdrawal. Please try again.',
+                );
+              },
+            });
+        }
+      },
+      error: (err) => {
+        this.isSubmitting.set(false);
+        this.flowErrorMessage.set(err.error?.error?.message || 'OTP verification failed.');
+      },
+    });
+  }
+
+  // Submit Support Ticket (AC-21, PT-20)
+  submitSupportTicket() {
+    const summary = this.supportSummary().trim();
+    const reason = this.supportReason().trim();
+    if (!summary || !reason) {
+      this.flowErrorMessage.set('Please provide both inquiry summary and reason.');
+      return;
+    }
+
+    this.isSubmitting.set(true);
+    this.flowErrorMessage.set(null);
+
+    this.supportService
+      .createTicket({
+        intent: 'SUPPORT',
+        conversation_summary: summary,
+        reason: reason,
+      })
+      .subscribe({
+        next: (res) => {
+          this.isSubmitting.set(false);
+          this.activeFlow.set('none');
+          this.addBotMessage({
+            text: `Support ticket **${res.ticket_id}** has been dispatched to our human specialist team. You will receive an update shortly.`,
+            chips: ['What is MT5?', 'Create MT5 Account'],
+            interactiveCard: 'receipt',
+            receiptData: {
+              title: 'Support Ticket Dispatched',
+              reference: res.ticket_id,
+              details: summary,
+              status: 'Open',
+            },
+          });
+        },
+        error: (err) => {
+          this.isSubmitting.set(false);
+          this.flowErrorMessage.set(err.error?.error?.message || 'Failed to create support ticket.');
+        },
+      });
+  }
+
+  cancelActiveFlow() {
+    this.activeFlow.set('none');
+    this.currentActionId.set(null);
+    this.currentActionIntent.set(null);
+    this.currentDraftSummary.set(null);
+    this.flowErrorMessage.set(null);
+    this.addBotMessage({
+      text: 'Action cancelled. How else can I help you?',
+      chips: ['Create MT5 Account', 'Withdraw Funds', 'What is MT5?'],
+    });
+  }
+
+  private addBotMessage(response: {
+    text: string;
+    chips?: string[];
+    suggestHandoff?: boolean;
+    interactiveCard?:
+      | 'create-mt5'
+      | 'deposit'
+      | 'withdrawal'
+      | 'confirmation'
+      | 'otp-stepup'
+      | 'support-form'
+      | 'receipt';
+    receiptData?: {
+      title: string;
+      reference: string;
+      details: string;
+      status: string;
+    };
+  }) {
     const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     const botMsg: ChatMessage = {
       id: 'msg-' + Date.now(),
@@ -333,6 +668,9 @@ export class GuzebotChat implements OnInit {
       text: response.text,
       time: timeStr,
       chips: response.chips,
+      suggestHandoff: response.suggestHandoff,
+      interactiveCard: response.interactiveCard,
+      receiptData: response.receiptData,
     };
 
     this.messages.update((prev) => [...prev, botMsg]);
@@ -340,14 +678,14 @@ export class GuzebotChat implements OnInit {
   }
 
   adjustHeight(textarea: HTMLTextAreaElement): void {
-    textarea.style.height = 'auto'; // Reset ความสูงก่อนคำนวณ
+    textarea.style.height = 'auto';
     textarea.style.height = `${textarea.scrollHeight}px`;
   }
 
   onKeyDown(event: Event): void {
     const kbEvent = event as KeyboardEvent;
     if (kbEvent.key === 'Enter' && !kbEvent.shiftKey) {
-      kbEvent.preventDefault(); // ป้องกันการขึ้นบรรทัดใหม่เมื่อกด Enter ปกติ
+      kbEvent.preventDefault();
       this.submitMessage();
     }
   }

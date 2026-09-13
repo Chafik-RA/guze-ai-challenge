@@ -104,4 +104,37 @@ export class TransactionRepository {
       [walletId, amount],
     );
   }
+
+  // Create Deposit
+  async createDeposit(
+    depositId: string,
+    memberId: number,
+    amount: number,
+    currency: string,
+    method: string,
+    statusCode: number = 1,
+  ): Promise<DepositRow> {
+    await pool.query(
+      `INSERT INTO deposits (deposit_id, member_id, amount, currency, method, status_code, approved_at)
+       VALUES ($1, $2, $3, $4, $5, $6, CASE WHEN $6 = 1 THEN now() ELSE null END)`,
+      [depositId, memberId, amount, currency, method, statusCode],
+    );
+
+    const row = await this.findDepositById(depositId);
+    if (!row) throw new Error("Failed to create deposit record");
+    return row;
+  }
+
+  // Credit Wallet Balance
+  async creditWalletBalance(
+    walletId: string,
+    amount: number,
+  ): Promise<void> {
+    await pool.query(
+      `UPDATE wallets
+       SET balance = balance + $2
+       WHERE wallet_id = $1`,
+      [walletId, amount],
+    );
+  }
 }

@@ -54,8 +54,9 @@ export class ActionDraftController {
     next: NextFunction,
   ) => {
     try {
+      const actionId = String(req.params.id || req.body.action_id || '');
       const draft = await actionDraftService.confirmDraft(
-        String(req.params.id),
+        actionId,
         req.member!.memberId,
       );
       res.status(200).json({

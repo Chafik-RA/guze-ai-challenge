@@ -99,4 +99,41 @@ export class TransactionController {
       next(err);
     }
   };
+
+  public createDeposit = async (
+    req: AuthenticatedRequest,
+    res: Response,
+    next: NextFunction,
+  ) => {
+    try {
+      const {
+        wallet_id,
+        amount,
+        currency,
+        payment_method,
+        action_id,
+        verification_token,
+        simulate_timeout,
+      } = req.body;
+      const idempotencyKey = req.headers["idempotency-key"] as string | undefined;
+      const simulateTimeout = req.headers["x-simulate-timeout"] === "true" || simulate_timeout === true;
+
+      const result = await transactionService.createDeposit({
+        memberId: req.member!.memberId,
+        walletId: wallet_id,
+        amount,
+        currency,
+        paymentMethod: payment_method,
+        actionId: action_id,
+        verificationToken: verification_token,
+        idempotencyKey,
+        simulateTimeout,
+      });
+
+      const statusCode = result.replayed ? 200 : 201;
+      res.status(statusCode).json(result);
+    } catch (err) {
+      next(err);
+    }
+  };
 }

@@ -18,35 +18,44 @@
         alt="user-default"
         class="h-10 w-10 shrink-0 rounded-full"
       />
-      <div class="flex flex-col gap-3">
-        <span class="text-primary-600 font-bold">
-          {{ authService.currentUser()?.display_name || 'Jess Lees' }}
-        </span>
+      <div class="flex flex-col gap-1.5">
+        <div class="flex items-center gap-1.5">
+          <span class="text-primary-600 font-bold text-sm">
+            {{ authService.currentUser()?.display_name || 'Alice Demo' }}
+          </span>
+          <span class="rounded-full bg-emerald-50 border border-emerald-200 px-1.5 py-0.2 text-[10px] font-semibold text-emerald-700">
+            {{ authService.userProfile()?.kyc_status === 'approved' ? 'KYC Verified' : 'KYC Verified' }}
+          </span>
+        </div>
+        <div class="text-gray-400 text-xs font-medium">
+          @{{ authService.currentUser()?.member_id || '1001' }}
+        </div>
         <div class="text-primary-600 flex items-center gap-2 text-xs font-medium">
           <div
-            class="flex items-center gap-1 rounded-2xl border border-[#E5E7EB] bg-[#F9FAFB] px-1.5 py-0.5"
+            class="flex items-center gap-1 rounded-2xl border border-[#E5E7EB] bg-[#F9FAFB] px-1.5 py-0.5 text-[11px]"
           >
-            <svg class="h-4 w-4 shrink-0">
+            <svg class="h-3.5 w-3.5 shrink-0">
               <use href="/svg-icons/sprite.svg?v=1#icon-gift-box"></use>
             </svg>
-            <p>0 GP</p>
+            <p>50 GP</p>
           </div>
           <div
-            class="flex items-center gap-1 rounded-2xl border border-[#E5E7EB] bg-[#F9FAFB] px-1.5 py-0.5"
+            class="flex items-center gap-1 rounded-2xl border border-[#E5E7EB] bg-[#F9FAFB] px-1.5 py-0.5 text-[11px]"
           >
-            <svg class="h-4 w-4 shrink-0">
+            <svg class="h-3.5 w-3.5 shrink-0">
               <use href="/svg-icons/sprite.svg?v=1#icon-graph"></use>
             </svg>
-            <p>0 lots/Day</p>
+            <p>2.4 lots/Day</p>
           </div>
         </div>
       </div>
     </div>
 
     <!-- Available Balance Card -->
-    <div class="flex flex-col gap-2">
-      <span class="text-lightGrey text-sm"> Available Balance </span>
-      <span class="text-primary-600 text-2xl font-semibold"> $87,254.34 </span>
+    <div class="flex flex-col gap-1 rounded-2xl bg-gray-50/80 border border-gray-100 p-3">
+      <span class="text-lightGrey text-xs font-medium"> Available Balance </span>
+      <span class="text-primary-600 text-2xl font-bold tracking-tight"> $5,000.00 </span>
+      <span class="text-[10px] text-gray-400 font-mono">MAIN-1001 • USD Wallet</span>
     </div>
   </div>
 

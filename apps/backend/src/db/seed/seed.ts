@@ -12,6 +12,9 @@ import { pool } from "../db.js";
 
 
 async function seed() {
+  const rawUrl = process.env.DATABASE_URL || "postgres://localhost:5432";
+  const maskedUrl = rawUrl.replace(/:([^:@]+)@/, ":****@");
+  console.log(`[INFO] Seeding database at: ${maskedUrl}`);
   const client = await pool.connect();
   try {
     await client.query("BEGIN");

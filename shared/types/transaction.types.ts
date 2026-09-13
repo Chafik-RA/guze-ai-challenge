@@ -1,4 +1,3 @@
-// ---- Deposits ----
 export interface Deposit {
   deposit_id: string;
   amount: number;
@@ -8,6 +7,26 @@ export interface Deposit {
   status: string;
   created_at: string;
   approved_at: string | null;
+}
+
+export interface CreateDepositRequest {
+  wallet_id: string;
+  amount: number;
+  currency: string;
+  payment_method: string;
+}
+
+export interface CreateDepositResponse {
+  request_id: string;
+  replayed?: boolean;
+  deposit: {
+    deposit_id: string;
+    amount: number;
+    currency: string;
+    payment_method: string;
+    status_code: number;
+    status: string;
+  };
 }
 
 // ---- Withdrawals ----

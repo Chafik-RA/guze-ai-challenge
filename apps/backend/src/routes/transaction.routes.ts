@@ -4,7 +4,10 @@ import { TransactionRepository } from "../repositories/transaction.repository.js
 import { authenticate } from "../middlewares/auth.middleware.js";
 import { requireOwnership } from "../middlewares/ownership.middleware.js";
 import { validateBody } from "../validators/auth.validator.js";
-import { createWithdrawalSchema } from "../validators/transaction.validator.js";
+import {
+  createWithdrawalSchema,
+  createDepositSchema,
+} from "../validators/transaction.validator.js";
 
 const router = express.Router();
 const transactionController = new TransactionController();
@@ -19,6 +22,14 @@ router.get(
     transactionRepository.findDepositById(String(req.params.id)),
   ),
   transactionController.getDepositById,
+);
+
+// POST /challenge/v1/transactions/deposits (Auth + OTP + Idempotency required)
+router.post(
+  "/deposits",
+  authenticate,
+  validateBody(createDepositSchema),
+  transactionController.createDeposit,
 );
 
 router.get("/withdrawals", authenticate, transactionController.listWithdrawals);

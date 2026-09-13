@@ -6,6 +6,8 @@ import type {
   Withdrawal,
   CreateWithdrawalRequest,
   CreateWithdrawalResponse,
+  CreateDepositRequest,
+  CreateDepositResponse,
 } from '@ai-challenge/shared/transaction.types';
 import { environment } from '../../../environments/environment';
 
@@ -25,6 +27,22 @@ export class TransactionService {
   getDepositById(depositId: string): Observable<Deposit> {
     return this.http.get<Deposit>(
       `${this.apiBase}/challenge/v1/transactions/deposits/${depositId}`,
+    );
+  }
+
+  createDeposit(
+    data: CreateDepositRequest,
+    options?: { actionId?: string; stepUpToken?: string; idempotencyKey?: string },
+  ): Observable<CreateDepositResponse> {
+    const headers: Record<string, string> = {};
+    if (options?.actionId) headers['x-action-id'] = options.actionId;
+    if (options?.stepUpToken) headers['x-step-up-token'] = options.stepUpToken;
+    if (options?.idempotencyKey) headers['x-idempotency-key'] = options.idempotencyKey;
+
+    return this.http.post<CreateDepositResponse>(
+      `${this.apiBase}/challenge/v1/transactions/deposits`,
+      data,
+      { headers },
     );
   }
 

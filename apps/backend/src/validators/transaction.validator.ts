@@ -8,3 +8,12 @@ export const createWithdrawalSchema = z.object({
   action_id: z.string().optional(),
   verification_token: z.string().optional(),
 });
+
+export const createDepositSchema = z.object({
+  wallet_id: z.string({ required_error: "wallet_id is required" }),
+  amount: z.number({ required_error: "amount is required" }).positive("Amount must be greater than 0"),
+  currency: z.string({ required_error: "currency is required" }),
+  payment_method: z.string({ required_error: "payment_method is required" }),
+  action_id: z.string().optional(),
+  verification_token: z.string().optional(),
+});

@@ -15,6 +15,9 @@ router.post(
   actionDraftController.createDraft,
 );
 
+// POST /challenge/v1/actions/confirm (with body { action_id })
+router.post("/confirm", authenticate, actionDraftController.confirmDraft);
+
 // GET /challenge/v1/actions/:id
 router.get("/:id", authenticate, actionDraftController.getDraft);
 

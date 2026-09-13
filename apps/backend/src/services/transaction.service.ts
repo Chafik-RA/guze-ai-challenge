@@ -12,6 +12,7 @@ import type {
   Deposit,
   Withdrawal,
   CreateWithdrawalResponse,
+  CreateDepositResponse,
 } from "@ai-challenge/shared/transaction.types";
 
 const transactionRepository = new TransactionRepository();
@@ -260,6 +261,163 @@ export class TransactionService {
     }
 
     // 11. Mark action draft as executed
+    if (actionId) {
+      await actionDraftService.markExecuted(actionId);
+    }
+
+    return response;
+  }
+
+  async createDeposit(params: {
+    memberId: number;
+    walletId: string;
+    amount: number;
+    currency: string;
+    paymentMethod: string;
+    actionId?: string | undefined;
+    verificationToken?: string | undefined;
+    idempotencyKey?: string | undefined;
+    simulateTimeout?: boolean | undefined;
+  }): Promise<CreateDepositResponse> {
+    const {
+      memberId,
+      walletId,
+      amount,
+      currency,
+      paymentMethod,
+      actionId,
+      verificationToken,
+      idempotencyKey,
+      simulateTimeout,
+    } = params;
+
+    // 1. Idempotency check
+    const replayed = await idempotencyService.getReplayedResult<CreateDepositResponse>(
+      idempotencyKey,
+      "CREATE_DEPOSIT",
+      memberId,
+    );
+    if (replayed) {
+      return replayed;
+    }
+
+    // 2. KYC check
+    const member = await authRepository.findById(memberId);
+    if (!member || member.kyc_status !== "approved") {
+      await auditService.record({
+        memberId,
+        intent: "DEPOSIT_REQUEST",
+        action: "CREATE_DEPOSIT",
+        actionId,
+        result: "error",
+        errorCode: ErrorCode.KYC_NOT_APPROVED,
+      });
+      throw createHttpError(
+        422,
+        "KYC approval is required before depositing funds",
+        ErrorCode.KYC_NOT_APPROVED,
+      );
+    }
+
+    // 3. Amount validation
+    if (amount <= 0 || Number.isNaN(amount)) {
+      throw createHttpError(
+        400,
+        "Deposit amount must be greater than zero",
+        ErrorCode.INVALID_AMOUNT,
+      );
+    }
+
+    // 4. Wallet check
+    const wallet = await transactionRepository.findWalletById(walletId);
+    if (!wallet) {
+      throw createHttpError(404, "Wallet not found", ErrorCode.WALLET_NOT_FOUND);
+    }
+    if (wallet.member_id !== memberId) {
+      throw createHttpError(404, "Wallet not found", ErrorCode.WALLET_NOT_OWNED);
+    }
+
+    // 5. Action Draft & Step-up OTP Validation
+    if (actionId) {
+      await actionDraftService.validateAndMatchSnapshot(actionId, memberId, {
+        wallet_id: walletId,
+        amount,
+        currency,
+        payment_method: paymentMethod,
+      });
+      await otpService.validateStepUpToken(actionId, verificationToken);
+    }
+
+    // Check for simulated timeout
+    if (simulateTimeout) {
+      await auditService.record({
+        memberId,
+        intent: "DEPOSIT_REQUEST",
+        action: "CREATE_DEPOSIT",
+        actionId,
+        confirmation: actionId ? "confirmed" : "not_confirmed",
+        stepUp: verificationToken ? "passed" : "not_required",
+        result: "unknown_result",
+        errorCode: ErrorCode.INTEGRATION_TIMEOUT,
+      });
+      throw createHttpError(
+        504,
+        "Integration timeout. Result is unknown.",
+        ErrorCode.INTEGRATION_TIMEOUT,
+      );
+    }
+
+    // 6. Create deposit record & credit wallet balance
+    const depositId = `DEP-${Math.floor(1000 + Math.random() * 9000)}`;
+    const createdRow = await transactionRepository.createDeposit(
+      depositId,
+      memberId,
+      amount,
+      currency,
+      paymentMethod,
+      1,
+    );
+
+    // Credit wallet
+    await transactionRepository.creditWalletBalance(walletId, amount);
+
+    const requestId = `REQ-DEP-${randomBytes(2).toString("hex").toUpperCase()}`;
+    const response: CreateDepositResponse = {
+      request_id: requestId,
+      deposit: {
+        deposit_id: createdRow.deposit_id,
+        amount: parseFloat(createdRow.amount),
+        currency: createdRow.currency,
+        payment_method: createdRow.method,
+        status_code: createdRow.status_code,
+        status: resolveDepositStatus(createdRow.status_code),
+      },
+    };
+
+    // 7. Record audit event
+    await auditService.record({
+      memberId,
+      intent: "DEPOSIT_REQUEST",
+      action: "CREATE_DEPOSIT",
+      actionId,
+      confirmation: "confirmed",
+      stepUp: "passed",
+      result: "success",
+      requestReference: requestId,
+    });
+
+    // 8. Save Idempotency Snapshot
+    if (idempotencyKey) {
+      await idempotencyService.saveResult(
+        idempotencyKey,
+        memberId,
+        "CREATE_DEPOSIT",
+        requestId,
+        response as unknown as Record<string, unknown>,
+      );
+    }
+
+    // 9. Mark action draft as executed
     if (actionId) {
       await actionDraftService.markExecuted(actionId);
     }

@@ -416,4 +416,55 @@ describe("Week 2 Backend Test Suite (PT-08 to PT-17)", { concurrency: 1 }, () =>
     assert.equal(res.body.status, "recorded");
     assert.ok(res.body.id);
   });
+
+  // Deposit API test (Create Deposit with Draft & OTP Verification)
+  test("Deposit API: POST /challenge/v1/transactions/deposits completes successfully and credits wallet", async () => {
+    // 1. Create action draft
+    const draftRes = await request(app)
+      .post("/challenge/v1/actions/draft")
+      .set("Authorization", `Bearer ${aliceToken}`)
+      .send({
+        intent: "DEPOSIT_REQUEST",
+        payload: {
+          wallet_id: "MAIN-1001",
+          amount: 500,
+          currency: "USD",
+          payment_method: "payment_gateway",
+        },
+      });
+    assert.equal(draftRes.status, 201);
+    const actionId = draftRes.body.action_id;
+
+    // 2. Confirm action draft
+    const confirmRes = await request(app)
+      .post(`/challenge/v1/actions/${actionId}/confirm`)
+      .set("Authorization", `Bearer ${aliceToken}`);
+    assert.equal(confirmRes.status, 200);
+
+    // 3. Verify OTP
+    const otpRes = await request(app)
+      .post("/challenge/v1/security/otp/verify")
+      .set("Authorization", `Bearer ${aliceToken}`)
+      .send({ action_id: actionId, otp: "123456" });
+    assert.equal(otpRes.status, 200);
+    const verificationToken = otpRes.body.verification_token;
+
+    // 4. Create deposit
+    const depRes = await request(app)
+      .post("/challenge/v1/transactions/deposits")
+      .set("Authorization", `Bearer ${aliceToken}`)
+      .send({
+        wallet_id: "MAIN-1001",
+        amount: 500,
+        currency: "USD",
+        payment_method: "payment_gateway",
+        action_id: actionId,
+        verification_token: verificationToken,
+      });
+
+    assert.equal(depRes.status, 201);
+    assert.ok(depRes.body.deposit?.deposit_id);
+    assert.equal(depRes.body.deposit?.amount, 500);
+    assert.equal(depRes.body.deposit?.status, "approve");
+  });
 });
