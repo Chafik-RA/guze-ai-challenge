@@ -21,11 +21,11 @@ app.use(helmet());
 const allowedOrigins = process.env.ALLOWED_ORIGINS
   ? process.env.ALLOWED_ORIGINS.split(",").map((s) => s.trim())
   : [
-      "http://localhost:5173",
-      "http://localhost:5174",
-      "http://localhost:5175",
-      "http://localhost:4200",
-    ];
+    "http://localhost:5173",
+    "http://localhost:5174",
+    "http://localhost:5175",
+    "http://localhost:4200",
+  ];
 
 const corsOption: cors.CorsOptions = {
   origin: (origin, callback) => {
@@ -52,6 +52,14 @@ app.use(express.json());
 
 // Plain health check — no DB dependency, just confirms the container is up.
 // Also proves the @shared/* import alias resolves correctly (backend <-> shared/types).
+app.get("/", (_req, res) => {
+  res.status(200).json({ status: "ok", message: "GUZE Backend API is running" });
+});
+
+app.head("/", (_req, res) => {
+  res.status(200).end();
+});
+
 app.get("/health", (_req, res) => {
   res.json({ status: "ok", shared_import_check: ErrorCode.AUTH_REQUIRED });
 });
