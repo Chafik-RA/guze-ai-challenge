@@ -1,3 +1,7 @@
+import dns from "node:dns";
+// บังคับให้ Node.js ใช้ IPv4 ก่อน IPv6 แก้ปัญหา ENETUNREACH บน Render
+dns.setDefaultResultOrder("ipv4first");
+
 import type { HttpError } from "@ai-challenge/shared/error-codes";
 import app from "./app.js";
 
