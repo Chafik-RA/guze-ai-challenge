@@ -1,5 +1,6 @@
 import { Component, inject } from '@angular/core';
 import { AuthService } from '../../../core/services/auth.service';
+import { UiService } from '../../../core/services/ui.service';
 import { Router } from '@angular/router';
 
 @Component({
@@ -9,6 +10,7 @@ import { Router } from '@angular/router';
 })
 export class Navbar {
   protected readonly authService = inject(AuthService);
+  protected readonly uiService = inject(UiService);
   private readonly router = inject(Router);
 
   logout() {

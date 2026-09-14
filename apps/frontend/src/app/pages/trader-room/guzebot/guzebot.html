@@ -1,41 +1,41 @@
 <main class="custom-scrollbar relative flex h-full min-w-0 flex-col overflow-y-auto">
   <div
-    class="mt-4 flex items-center justify-between border-b border-gray-100 bg-white/70 px-8 py-5 backdrop-blur-sm"
+    class="mt-2 sm:mt-4 flex items-center justify-between border-b border-gray-100 bg-white/70 px-4 sm:px-8 py-3 sm:py-5 backdrop-blur-sm rounded-xl sm:rounded-2xl"
   >
-    <h1 class="text-primary-600 text-2xl font-semibold">Guzebot</h1>
+    <h1 class="text-primary-600 text-xl sm:text-2xl font-semibold">Guzebot</h1>
 
     <button
       type="button"
       (click)="openMoreInfo()"
-      class="border-lightGrey flex cursor-pointer items-center gap-2 rounded-full border bg-white px-4 py-3 text-xs font-semibold text-gray-600 shadow-sm transition hover:bg-black/2 active:scale-95"
+      class="border-lightGrey flex cursor-pointer items-center gap-1.5 sm:gap-2 rounded-full border bg-white px-3 sm:px-4 py-2 sm:py-2.5 text-xs font-semibold text-gray-600 shadow-xs transition hover:bg-black/2 active:scale-95"
     >
-      <svg class="h-5 w-5 shrink-0">
+      <svg class="h-4 w-4 sm:h-5 sm:w-5 shrink-0">
         <use href="/svg-icons/sprite.svg?v=1#icon-alert-circle"></use>
       </svg>
       <span>More Info</span>
     </button>
   </div>
 
-  <div class="flex h-full flex-1 flex-col items-center justify-center p-8">
+  <div class="flex h-full flex-1 flex-col items-center justify-center p-4 sm:p-8">
     <div
-      class="flex max-w-lg flex-col items-center justify-center rounded-3xl border border-gray-100 bg-white p-8 text-center shadow-sm"
+      class="flex w-full max-w-lg flex-col items-center justify-center rounded-2xl sm:rounded-3xl border border-gray-100 bg-white p-6 sm:p-8 text-center shadow-sm"
     >
-      <div class="bg-primary-600/5 mb-4 flex h-20 w-20 items-center justify-center rounded-full">
+      <div class="bg-primary-600/5 mb-4 flex h-18 w-18 sm:h-20 sm:w-20 items-center justify-center rounded-full">
         <img
           src="images/guzebot_avatar.svg"
           alt="Guzebot"
-          class="h-16 w-16 rounded-full object-cover shadow-sm"
+          class="h-14 w-14 sm:h-16 sm:w-16 rounded-full object-cover shadow-sm"
         />
       </div>
-      <h2 class="mb-2 text-lg font-bold text-gray-900">Guzebot is Active</h2>
-      <p class="mb-6 text-xs leading-relaxed text-gray-500">
+      <h2 class="mb-2 text-base sm:text-lg font-bold text-gray-900">Guzebot is Active</h2>
+      <p class="mb-6 text-xs sm:text-sm leading-relaxed text-gray-500 max-w-sm">
         Your 24/7 intelligent trading assistant is ready to help. You can interact with Guzebot
         anytime using the floating assistant widget or modal dialogs.
       </p>
       <button
         type="button"
         (click)="openWelcomeModal()"
-        class="cursor-pointer rounded-full bg-[#b4d626] px-6 py-2.5 text-xs font-bold text-gray-900 shadow-sm transition-all hover:bg-[#a3c420]"
+        class="w-full sm:w-auto cursor-pointer rounded-full bg-[#b4d626] px-6 py-3 text-xs sm:text-sm font-bold text-gray-900 shadow-sm transition-all hover:bg-[#a3c420] active:scale-95"
       >
         Launch Guzebot Dialog
       </button>

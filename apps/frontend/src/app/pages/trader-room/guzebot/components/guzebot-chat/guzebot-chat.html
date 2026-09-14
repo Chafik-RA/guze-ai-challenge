@@ -4,7 +4,7 @@
     class="animate-fadeIn fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm"
   >
     <div
-      class="animate-scaleUp relative flex w-full max-w-120 transform flex-col items-center rounded-3xl border border-gray-100 bg-white p-8 shadow-2xl transition-all sm:p-10"
+      class="animate-scaleUp relative flex w-full max-w-[calc(100vw-2rem)] sm:max-w-120 max-h-[90vh] overflow-y-auto transform flex-col items-center rounded-3xl border border-gray-100 bg-white p-6 shadow-2xl transition-all sm:p-10"
     >
       <!-- Close Button -->
       <button
@@ -26,7 +26,7 @@
         <img
           src="images/guzebot_avatar.svg"
           alt="Guzebot 3D Avatar"
-          class="relative h-28 w-28 rounded-full border-2 border-white object-cover shadow-lg transition-transform duration-500 select-none hover:scale-105"
+          class="relative h-24 w-24 sm:h-28 sm:w-28 rounded-full border-2 border-white object-cover shadow-lg transition-transform duration-500 select-none hover:scale-105"
         />
       </div>
 
@@ -39,18 +39,18 @@
       </p>
 
       <!-- Action Buttons -->
-      <div class="flex w-full items-center justify-center gap-4">
+      <div class="flex w-full flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4">
         <button
           type="button"
           (click)="setMode('modal-more-info')"
-          class="flex-1 cursor-pointer rounded-full border border-gray-200 px-6 py-3 text-xs font-semibold text-gray-700 shadow-sm transition-all hover:border-gray-300 hover:bg-gray-50 active:scale-95 sm:text-sm"
+          class="w-full sm:flex-1 cursor-pointer rounded-full border border-gray-200 px-6 py-3 text-xs font-semibold text-gray-700 shadow-sm transition-all hover:border-gray-300 hover:bg-gray-50 active:scale-95 sm:text-sm"
         >
           More Info
         </button>
         <button
           type="button"
           (click)="startChat()"
-          class="flex-1 cursor-pointer rounded-full bg-[#b4d626] px-6 py-3 text-center text-xs font-bold text-gray-900 shadow-md transition-all hover:bg-[#a3c420] hover:shadow-lg active:scale-95 sm:text-sm"
+          class="w-full sm:flex-1 cursor-pointer rounded-full bg-[#b4d626] px-6 py-3 text-center text-xs font-bold text-gray-900 shadow-md transition-all hover:bg-[#a3c420] hover:shadow-lg active:scale-95 sm:text-sm"
         >
           Start Chat
         </button>
@@ -65,7 +65,7 @@
     class="animate-fadeIn fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm"
   >
     <div
-      class="animate-scaleUp relative flex max-h-[85vh] w-full max-w-130 flex-col overflow-hidden rounded-3xl border border-gray-100 bg-white p-6 shadow-2xl transition-all sm:p-8"
+      class="animate-scaleUp relative flex max-h-[88vh] w-full max-w-[calc(100vw-2rem)] sm:max-w-130 flex-col overflow-hidden rounded-3xl border border-gray-100 bg-white p-5 shadow-2xl transition-all sm:p-8"
     >
       <!-- Modal Top Bar -->
       <div class="mb-4 flex items-center justify-between border-b border-gray-100 pb-4">
@@ -155,7 +155,7 @@
         <button
           type="button"
           (click)="startChat()"
-          class="cursor-pointer rounded-full bg-[#b4d626] px-8 py-2.5 text-xs font-bold text-gray-900 shadow-md transition-all hover:bg-[#a3c420] hover:shadow-lg active:scale-95 sm:text-sm"
+          class="w-full sm:w-auto cursor-pointer rounded-full bg-[#b4d626] px-8 py-2.5 text-xs font-bold text-gray-900 shadow-md transition-all hover:bg-[#a3c420] hover:shadow-lg active:scale-95 sm:text-sm"
         >
           Start Chat Now
         </button>
@@ -167,7 +167,7 @@
 <!-- ACTIVE DOCKED CHAT WIDGET -->
 @if (currentMode() === 'chat-open') {
   <div
-    class="animate-slideUp fixed right-4 bottom-4 z-50 flex h-150 max-h-[90vh] w-[94vw] flex-col overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-2xl sm:right-6 sm:bottom-6 sm:w-105"
+    class="animate-slideUp fixed inset-x-2 bottom-2 z-50 flex h-[84vh] max-h-[640px] flex-col overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-2xl sm:inset-x-auto sm:right-6 sm:bottom-6 sm:h-150 sm:w-105 sm:max-h-[90vh]"
   >
     <!-- Header -->
     <div class="flex items-center justify-between border-b border-gray-100 px-4.5 py-3.5 bg-gray-50/70">
@@ -784,11 +784,11 @@
 
 <!-- FLOATING MINIMIZED BUBBLE BUTTON -->
 @if (currentMode() === 'chat-minimized') {
-  <div class="fixed right-6 bottom-6 z-50">
+  <div class="fixed right-4 bottom-4 sm:right-6 sm:bottom-6 z-40">
     <button
       type="button"
       (click)="toggleChat()"
-      class="group relative flex h-14 w-14 cursor-pointer items-center justify-center rounded-full bg-[#1e293b] p-0.5 shadow-2xl transition-all duration-300 hover:scale-110 active:scale-95"
+      class="group relative flex h-13 w-13 sm:h-14 sm:w-14 cursor-pointer items-center justify-center rounded-full bg-[#1e293b] p-0.5 shadow-2xl transition-all duration-300 hover:scale-110 active:scale-95"
       aria-label="Open Guzebot AI Chat"
     >
       <div
@@ -800,7 +800,7 @@
         class="relative h-full w-full rounded-full object-cover"
       />
       <span
-        class="absolute top-0 right-0 h-3.5 w-3.5 rounded-full border-2 border-white bg-emerald-400"
+        class="absolute top-0 right-0 h-3 sm:h-3.5 w-3 sm:w-3.5 rounded-full border-2 border-white bg-emerald-400"
       ></span>
     </button>
   </div>

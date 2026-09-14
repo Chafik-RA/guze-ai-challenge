@@ -1,5 +1,6 @@
-<div
-  class="bg-gradientPrimary flex h-14 items-center justify-center border-b border-[#E5E7EB] px-4 py-2.5"
+<!-- 1. DESKTOP UTILITY NAVBAR (Visible on lg and up) -->
+<header
+  class="bg-gradientPrimary hidden h-14 items-center justify-center border-b border-[#E5E7EB] px-4 py-2.5 lg:flex"
 >
   <div
     class="text-primary-200 flex w-full max-w-7xl flex-1 items-center justify-between text-sm font-medium"
@@ -42,4 +43,56 @@
       </div>
     </div>
   </div>
-</div>
+</header>
+
+<!-- 2. MOBILE / TABLET TOP APP BAR (Visible below lg) -->
+<header
+  class="sticky top-0 z-30 flex h-14 w-full items-center justify-between border-b border-gray-100 bg-white/95 px-3 backdrop-blur-md shadow-xs sm:px-5 lg:hidden"
+>
+  <!-- Hamburger Menu Button -->
+  <button
+    type="button"
+    (click)="uiService.toggleMobileSidebar()"
+    class="flex h-10 w-10 cursor-pointer items-center justify-center rounded-xl text-gray-700 transition hover:bg-gray-100 active:scale-95"
+    aria-label="Toggle navigation menu"
+  >
+    <svg class="h-6 w-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+    </svg>
+  </button>
+
+  <!-- Brand Logo -->
+  <div class="flex items-center justify-center">
+    <img
+      src="/images/logo/guze_logo_blue.svg"
+      alt="GUZE MARKETS"
+      class="h-8 w-auto object-contain"
+    />
+  </div>
+
+  <!-- Right Actions: User Profile Pill & Quick Logout -->
+  <div class="flex items-center gap-2">
+    <div class="flex items-center gap-1.5 rounded-full border border-gray-100 bg-gray-50/80 py-1 pl-1 pr-2 text-xs">
+      <img
+        src="/images/user-default.png"
+        alt="User"
+        class="h-6 w-6 rounded-full object-cover"
+      />
+      <span class="text-primary-600 max-w-[80px] truncate font-semibold text-[11px] sm:max-w-none">
+        {{ authService.currentUser()?.display_name || 'Alice' }}
+      </span>
+    </div>
+
+    <button
+      type="button"
+      (click)="logout()"
+      class="flex h-9 w-9 cursor-pointer items-center justify-center rounded-xl text-gray-500 transition hover:bg-rose-50 hover:text-rose-600 active:scale-95"
+      title="Logout"
+      aria-label="Logout"
+    >
+      <svg class="h-4.5 w-4.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l-3 3m0 0l3 3m-3-3h12.75" />
+      </svg>
+    </button>
+  </div>
+</header>
