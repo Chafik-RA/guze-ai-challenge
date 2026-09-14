@@ -206,14 +206,19 @@ export class GuzebotChat implements OnInit {
   }
 
   private fetchBotResponse(query: string) {
+    const isThai = /[\u0E00-\u0E7F]/.test(query);
     const q = query.toLowerCase();
 
     // 1. Explicit Quick Actions from Action Chips
     if (query === 'Create MT5 Account' || query === 'เปิดบัญชี MT5' || query === 'สร้างบัญชี MT5') {
       if (!this.authService.isAuthenticated()) {
         this.addBotMessage({
-          text: 'การเปิดบัญชี MT5 จำเป็นต้องเข้าสู่ระบบก่อนครับ กรุณา Sign In เข้าสู่ระบบ',
-          chips: ['ประเภทบัญชีมีอะไรบ้าง?', 'MT5 คืออะไร?'],
+          text: isThai
+            ? 'การเปิดบัญชี MT5 จำเป็นต้องเข้าสู่ระบบก่อนครับ กรุณา Sign In เข้าสู่ระบบ'
+            : 'Please Sign In to your account before opening an MT5 account.',
+          chips: isThai
+            ? ['ประเภทบัญชีมีอะไรบ้าง?', 'MT5 คืออะไร?']
+            : ['What account types are available?', 'What is MT5?'],
         });
         return;
       }
@@ -221,7 +226,9 @@ export class GuzebotChat implements OnInit {
       this.activeFlow.set('create-mt5');
       this.flowErrorMessage.set(null);
       this.addBotMessage({
-        text: 'กรุณาเลือกประเภทบัญชีเทรดและเลเวอเรจที่ต้องการด้านล่างได้เลยครับ:',
+        text: isThai
+          ? 'กรุณาเลือกประเภทบัญชีเทรดและเลเวอเรจที่ต้องการด้านล่างได้เลยครับ:'
+          : 'Please select your preferred trading account type and leverage below:',
         interactiveCard: 'create-mt5',
       });
       return;
@@ -230,8 +237,12 @@ export class GuzebotChat implements OnInit {
     if (query === 'Deposit Funds' || query === 'ทำรายการฝากเงิน' || query === 'ฝากเงินเข้ากระเป๋า') {
       if (!this.authService.isAuthenticated()) {
         this.addBotMessage({
-          text: 'การฝากเงินเข้าวอลเล็ตจำเป็นต้องเข้าสู่ระบบก่อนครับ กรุณา Sign In',
-          chips: ['ประเภทบัญชีมีอะไรบ้าง?', 'MT5 คืออะไร?'],
+          text: isThai
+            ? 'การฝากเงินเข้าวอลเล็ตจำเป็นต้องเข้าสู่ระบบก่อนครับ กรุณา Sign In'
+            : 'Please Sign In to your account before making a deposit.',
+          chips: isThai
+            ? ['ประเภทบัญชีมีอะไรบ้าง?', 'MT5 คืออะไร?']
+            : ['What account types are available?', 'What is MT5?'],
         });
         return;
       }
@@ -239,7 +250,9 @@ export class GuzebotChat implements OnInit {
       this.activeFlow.set('deposit');
       this.flowErrorMessage.set(null);
       this.addBotMessage({
-        text: 'กรุณาเลือกช่องทางการชำระเงินและระบุจำนวนเงินที่ต้องการฝากด้านล่างครับ:',
+        text: isThai
+          ? 'กรุณาเลือกช่องทางการชำระเงินและระบุจำนวนเงินที่ต้องการฝากด้านล่างครับ:'
+          : 'Please select a payment method and enter the deposit amount below:',
         interactiveCard: 'deposit',
       });
       return;
@@ -248,8 +261,12 @@ export class GuzebotChat implements OnInit {
     if (query === 'Withdraw Funds' || query === 'ทำรายการถอนเงิน' || query === 'ถอนเงินออกจากกระเป๋า') {
       if (!this.authService.isAuthenticated()) {
         this.addBotMessage({
-          text: 'การถอนเงินจำเป็นต้องเข้าสู่ระบบก่อนครับ กรุณา Sign In',
-          chips: ['ประเภทบัญชีมีอะไรบ้าง?'],
+          text: isThai
+            ? 'การถอนเงินจำเป็นต้องเข้าสู่ระบบก่อนครับ กรุณา Sign In'
+            : 'Please Sign In to your account before requesting a withdrawal.',
+          chips: isThai
+            ? ['ประเภทบัญชีมีอะไรบ้าง?']
+            : ['What account types are available?'],
         });
         return;
       }
@@ -257,7 +274,9 @@ export class GuzebotChat implements OnInit {
       this.activeFlow.set('withdrawal');
       this.flowErrorMessage.set(null);
       this.addBotMessage({
-        text: 'กรุณาระบุจำนวนเงินที่ต้องการถอนจากกระเป๋าของคุณด้านล่างครับ:',
+        text: isThai
+          ? 'กรุณาระบุจำนวนเงินที่ต้องการถอนจากกระเป๋าของคุณด้านล่างครับ:'
+          : 'Please enter the amount you wish to withdraw from your wallet below:',
         interactiveCard: 'withdrawal',
       });
       return;
@@ -267,7 +286,9 @@ export class GuzebotChat implements OnInit {
       this.activeFlow.set('support');
       this.flowErrorMessage.set(null);
       this.addBotMessage({
-        text: 'คุณสามารถกรอกหัวข้อและรายละเอียดเพื่อส่งเรื่องไปยังเจ้าหน้าที่ผู้เชี่ยวชาญได้ด้านล่างครับ:',
+        text: isThai
+          ? 'คุณสามารถกรอกหัวข้อและรายละเอียดเพื่อส่งเรื่องไปยังเจ้าหน้าที่ผู้เชี่ยวชาญได้ด้านล่างครับ:'
+          : 'Please provide the inquiry details below to submit a ticket to our support specialist:',
         interactiveCard: 'support-form',
       });
       return;
@@ -291,13 +312,16 @@ export class GuzebotChat implements OnInit {
 
         this.addBotMessage({
           text: res.response,
-          chips: res.chips || ['ประเภทบัญชีมีอะไรบ้าง?', 'เปิดบัญชี MT5', 'ทำรายการฝากเงิน'],
+          chips:
+            res.chips ||
+            (isThai
+              ? ['ประเภทบัญชีมีอะไรบ้าง?', 'เปิดบัญชี MT5', 'ทำรายการฝากเงิน']
+              : ['What account types are available?', 'Create MT5 Account', 'Deposit Funds']),
           suggestHandoff: res.suggest_handoff,
           interactiveCard: cardToDisplay,
         });
       },
       error: () => {
-        const isThai = /[\u0E00-\u0E7F]/.test(query);
         this.addBotMessage({
           text: isThai
             ? "สวัสดีครับ! ผม Guzebot ผู้ช่วย AI ประจำ Guze Markets ยินดีช่วยเหลือและตอบคำถามเกี่ยวกับการเทรดครับ"
